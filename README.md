@@ -1,6 +1,6 @@
 ### qmgo gridfs wrap
 
-### usage see mgo gridfs
+### usage see mgo gridfs[https://pkg.go.dev/github.com/globalsign/mgo#GridFS]
 
 ```
   cli, err = qmgo.Open(context.Background(), cfg, o...)
