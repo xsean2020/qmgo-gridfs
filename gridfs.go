@@ -77,6 +77,10 @@ type gfsCachedChunk struct {
 	err  error
 }
 
+func NewGridFS(db *qmgo.Database, prefix string) *GridFS {
+	return newGridFS(db, prefix)
+}
+
 func newGridFS(db *qmgo.Database, prefix string) *GridFS {
 	return &GridFS{db.Collection(prefix + ".files"), db.Collection(prefix + ".chunks")}
 }

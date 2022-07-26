@@ -7,7 +7,7 @@
   if err != nil {
      panic(err)
   }
-  gfs := cli.GridFS("test")
+  gfs := NewGridFS(cli,"fs")
   f, err := gfs.Create("race_info")
   if err != nil {
     panic(err)
