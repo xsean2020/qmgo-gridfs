@@ -473,13 +473,8 @@ func (file *GridFile) SetUploadDate(t time.Time) {
 	file.m.Unlock()
 }
 
-// Close flushes any pending changes in case the file is being written
-// to, waits for any background operations to finish, and closes the file.
-//
-// It's important to Close files whether they are being written to
-// or read from, and to check the err result to ensure the operation
-// completed successfully.
-func (file *GridFile) Close() (err error) {
+// Flush pending data
+func (file *GridFile) flush() {
 	file.m.Lock()
 	defer file.m.Unlock()
 	if file.mode == gfsWriting {
@@ -487,6 +482,38 @@ func (file *GridFile) Close() (err error) {
 			file.insertChunk(file.wbuf)
 			file.wbuf = file.wbuf[0:0]
 		}
+	}
+	return
+}
+
+// Waiting all chunk write success
+func (file *GridFile) wait() {
+	for {
+		if ok := func() bool {
+			file.m.Lock()
+			defer file.m.Unlock()
+			return file.wpending == 0
+		}(); ok {
+			return
+		}
+		debugf("GridFile %p: waiting for %d pending chunks to complete file write", file, file.wpending)
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// Close flushes any pending changes in case the file is being written
+// to, waits for any background operations to finish, and closes the file.
+//
+// It's important to Close files whether they are being written to
+// or read from, and to check the err result to ensure the operation
+// completed successfully.
+func (file *GridFile) Close() (err error) {
+	file.flush()
+	file.wait()
+
+	file.m.Lock()
+	defer file.m.Unlock()
+	if file.mode == gfsWriting {
 		file.completeWrite()
 	} else if file.mode == gfsReading && file.rcache != nil {
 		file.rcache.wait.Lock()
@@ -497,12 +524,7 @@ func (file *GridFile) Close() (err error) {
 }
 
 func (file *GridFile) completeWrite() {
-	for file.wpending > 0 {
-		file.c.Wait()
-	}
-
 	ctx := context.Background()
-
 	if file.err == nil {
 		hexsum := hex.EncodeToString(file.wsum.Sum(nil))
 		if file.doc.UploadDate.IsZero() {
