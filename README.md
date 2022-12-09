@@ -15,7 +15,8 @@ usage see [mgo gridfs](https://pkg.go.dev/github.com/globalsign/mgo#GridFS)
   if err != nil {
     panic(err)
   }
-  f.Write([]byte(str))
   defer f.Close()
+  f.Write([]byte(str))
+  
 
 ```
